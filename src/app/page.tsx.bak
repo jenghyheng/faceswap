@@ -1,0 +1,298 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import TargetImageSelector from '@/components/TargetImageSelector';
+import ImageUploader from '@/components/ImageUploader';
+import ResultDisplay from '@/components/ResultDisplay';
+import { swapFaces, checkTaskStatus } from '@/utils/api';
+import { uploadToCloudflare } from '@/utils/cloudflare';
+import targetImages from '@/data/targetImages';
+import { SwapStatus } from '@/types';
+import { UploadButton } from '@/components/UploadButton';
+import { ApiKeyInput } from '@/components/ApiKeyInput';
+import { ImageGallery } from '@/components/ImageGallery';
+
+export default function Home() {
+  // Get PIAPI key from environment variables with fallback to empty string
+  const defaultApiKey = process.env.NEXT_PUBLIC_PIAPI_KEY || '';
+  
+  const [selectedTargetImage, setSelectedTargetImage] = useState<string | null>(null);
+  const [swapImage, setSwapImage] = useState<File | null>(null);
+  const [apiKey, setApiKey] = useState<string>(defaultApiKey);
+  const [status, setStatus] = useState<SwapStatus>('idle');
+  const [resultUrl, setResultUrl] = useState<string | null>(null);
+  const [cloudflareUrl, setCloudflareUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState<boolean>(false);
+  const [processing, setProcessing] = useState<boolean>(false);
+  const [testResult, setTestResult] = useState<string | null>(null);
+  const [isTesting, setIsTesting] = useState<boolean>(false);
+  const [taskId, setTaskId] = useState<string | null>(null);
+  const [polling, setPolling] = useState<boolean>(false);
+
+  // Poll for task status if we have a pending task
+  useEffect(() => {
+    if (!polling || !taskId) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        console.log(`Polling for task status: ${taskId}`);
+        const response = await checkTaskStatus(taskId);
+        
+        if (response.data) {
+          // Task completed successfully
+          if (response.data.status === 'completed' && response.data.output?.image) {
+            setPolling(false);
+            setStatus('succeeded');
+            setResultUrl(response.data.output.image);
+            
+            // Upload result to Cloudflare
+            uploadResultToCloudflare(response.data.output.image);
+          } 
+          // Task failed
+          else if (response.data.status === 'failed') {
+            setPolling(false);
+            setStatus('failed');
+            const errorMsg = response.data.error?.message || 'Task failed without specific error';
+            setError(errorMsg);
+          }
+          // Still processing, continue polling
+          else if (response.data.status === 'pending' || response.data.status === 'processing') {
+            console.log('Task still processing, continuing to poll...');
+          }
+          // Unknown status
+          else {
+            setPolling(false);
+            setStatus('failed');
+            setError(`Unknown task status: ${response.data.status}`);
+          }
+        } else {
+          setPolling(false);
+          setStatus('failed');
+          setError('Invalid response from task status API');
+        }
+      } catch (err) {
+        console.error('Error polling task status:', err);
+        if (err instanceof Error) {
+          setError(`Error checking task status: ${err.message}`);
+        } else {
+          setError('Unknown error while checking task status');
+        }
+        setPolling(false);
+        setStatus('failed');
+      }
+    }, 3000); // Poll every 3 seconds
+
+    // Clean up interval on unmount or when polling stops
+    return () => clearInterval(pollInterval);
+  }, [polling, taskId]);
+
+  const uploadResultToCloudflare = async (imageUrl: string) => {
+    try {
+      setUploading(true);
+      
+      // Upload the image to Cloudflare R2
+      const uploadedUrl = await uploadToCloudflare(imageUrl);
+      
+      setCloudflareUrl(uploadedUrl);
+      setUploading(false);
+    } catch (error) {
+      console.error('Error uploading to Cloudflare:', error);
+      setUploading(false);
+    }
+  };
+
+  const handleSelectTargetImage = (image: string) => {
+    console.log(`Selected target image: ${image}`);
+    // If the image is a numeric ID (1-7), get the actual URL from the targetImages array
+    const selectedImage = /^[1-7]$/.test(image) 
+      ? targetImages.find(img => img.id === image)?.url || image
+      : image;
+    
+    console.log(`Using URL: ${selectedImage}`);
+    setSelectedTargetImage(selectedImage);
+  };
+
+  const handleTest = async () => {
+    if (!selectedTargetImage || !swapImage || !apiKey) {
+      setError('Please select a target image, upload your face image, and enter an API key');
+      return;
+    }
+
+    setIsTesting(true);
+    setTestResult(null);
+    setError(null);
+    
+    try {
+      // Use image ID directly if it's a predefined target image
+      const imageIdOrUrl = selectedTargetImage;
+      console.log(`Using target image for test: ${imageIdOrUrl}`);
+      
+      // Call the API directly
+      const result = await swapFaces(imageIdOrUrl, swapImage);
+      console.log("API Response:", result);
+      setTestResult(JSON.stringify(result, null, 2));
+    } catch (err: any) {
+      setError(`Test API Error: ${err.message}`);
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+  const handleSwap = async () => {
+    if (!selectedTargetImage || !swapImage || !apiKey) {
+      setError('Please select a target image, upload your face image, and enter an API key');
+      return;
+    }
+
+    setStatus('loading');
+    setError(null);
+    setResultUrl(null);
+    setCloudflareUrl(null);
+    setTestResult(null);
+    setProcessing(true);
+    setTaskId(null);
+    setPolling(false);
+    
+    try {
+      // Use image ID directly if it's a predefined target image
+      const imageIdOrUrl = selectedTargetImage;
+      console.log(`Using target image for swap: ${imageIdOrUrl}`);
+      
+      // Call the API directly
+      const response = await swapFaces(imageIdOrUrl, swapImage);
+      console.log("API Response:", response);
+      
+      // Handle the response
+      if (response.data && response.code === 200) {
+        // Store the task ID for polling
+        const newTaskId = response.data.task_id;
+        setTaskId(newTaskId);
+        
+        // If the task is pending, start polling
+        if (response.data.status === 'pending') {
+          console.log(`Starting polling for task: ${newTaskId}`);
+          setPolling(true);
+          setError(null);
+          // Processing will continue in the useEffect
+        }
+        // If the task completed immediately (rare)
+        else if (response.data.status === 'completed' && response.data.output?.image) {
+          setStatus('succeeded');
+          setResultUrl(response.data.output.image);
+          uploadResultToCloudflare(response.data.output.image);
+        }
+        // If the task failed immediately
+        else if (response.data.status === 'failed') {
+          setStatus('failed');
+          setError(response.data.error?.message || 'Face swap failed');
+        }
+      } else if (response.error) {
+        throw new Error(response.error);
+      } else {
+        throw new Error('No valid response from API');
+      }
+    } catch (err: any) {
+      setStatus('failed');
+      setError(`Error: ${err.message}`);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  return (
+    <main className="min-h-screen bg-gray-100 py-12 px-4">
+      <div className="max-w-6xl mx-auto">
+        <h1 className="text-4xl font-bold text-center mb-12 text-black">Face Swap API</h1>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+          <div className="space-y-8">
+            <TargetImageSelector
+              images={targetImages}
+              selectedImage={selectedTargetImage}
+              onSelectImage={handleSelectTargetImage}
+            />
+            
+            <ImageUploader
+              onFileSelect={setSwapImage}
+              selectedFile={swapImage}
+              label="Select Swap Image (Your Face):"
+            />
+            
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold text-black">API Key:</h2>
+              <input
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="Enter your piapi.ai API key"
+                className="w-full p-3 border border-gray-300 rounded-lg text-black"
+              />
+              <p className="text-xs text-gray-800">
+                Get your API key from{' '}
+                <a 
+                  href="https://piapi.ai/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-700 hover:underline"
+                >
+                  piapi.ai
+                </a>
+              </p>
+            </div>
+            
+            <div className="flex gap-4">
+              <button
+                onClick={handleSwap}
+                disabled={!selectedTargetImage || !swapImage || !apiKey || status === 'loading' || processing}
+                className="flex-1 py-3 px-6 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {processing ? "Processing..." : "Swap Face"}
+              </button>
+              
+              <button
+                onClick={handleTest}
+                disabled={!selectedTargetImage || !swapImage || !apiKey || isTesting || processing}
+                className="py-3 px-6 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Test API
+              </button>
+            </div>
+            
+            {processing && (
+              <div className="p-4 bg-blue-100 border border-blue-400 text-blue-700 rounded-lg flex items-center">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Processing face swap...
+              </div>
+            )}
+            
+            {testResult && (
+              <div className="p-4 bg-gray-800 text-white rounded-lg overflow-auto max-h-80">
+                <pre className="text-xs">{testResult}</pre>
+              </div>
+            )}
+            
+            {error && (
+              <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+                {error}
+              </div>
+            )}
+          </div>
+          
+          <div>
+            <ResultDisplay
+              status={status}
+              resultUrl={resultUrl}
+              cloudflareUrl={cloudflareUrl}
+              error={error}
+              uploading={uploading}
+            />
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
