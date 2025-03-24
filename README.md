@@ -1,13 +1,138 @@
 # FaceSwap App
 
-A simple face swap application built with Next.js and Firebase, using the PiAPI.ai service for face swapping functionality.
+A Next.js application for face swapping using piapi.io API with Firebase integration.
 
 ## Features
 
-- User authentication via Firebase Auth
-- Upload and swap faces using PiAPI.ai
-- View previous face swap generations
-- Responsive design
+- Upload source images and use various target images
+- Authentication with Google via Firebase
+- Face swap using piapi.io API
+- Generation history stored in Firestore
+- Responsive UI with Tailwind CSS
+
+## Prerequisites
+
+- Node.js 18.x or higher
+- npm or yarn
+- Firebase project with Authentication and Firestore enabled
+- piapi.io API key
+
+## Local Development
+
+1. Clone the repository:
+```bash
+git clone https://github.com/jenghyheng/faceswap.git
+cd faceswap
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Set up environment variables:
+Create a `.env.local` file in the root with the following:
+```
+NEXT_PUBLIC_PIAPI_KEY=your_piapi_key_here
+
+# Firebase Configuration
+NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_firebase_auth_domain
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_firebase_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_firebase_storage_bucket
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_firebase_messaging_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_firebase_app_id
+```
+
+4. Run the development server:
+```bash
+npm run dev
+```
+
+5. Open http://localhost:3000 in your browser.
+
+## Firebase Setup
+
+1. Create a Firebase project at https://console.firebase.google.com/
+2. Enable Google Authentication
+3. Enable Firestore database
+4. Set up Firestore security rules:
+
+```
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow authenticated users to read and write their own generation data
+    match /generate-image/{docId} {
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+    
+    // Default deny all other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+```
+
+## Deployment to Vercel
+
+### Automatic Deployment
+
+1. Fork this repository to your GitHub account.
+2. Go to [Vercel](https://vercel.com/) and sign up/login.
+3. Click on "New Project" and import your forked repository.
+4. Configure the project:
+   - Framework Preset: Next.js
+   - Root Directory: ./
+   - Build Command: npm run build
+   - Install Command: npm install
+   - Output Directory: .next
+5. Add the environment variables from your `.env.local` file.
+6. Click "Deploy" and wait for the build to complete.
+
+### Environment Variables in Vercel
+
+Make sure to add the following environment variables in your Vercel project settings:
+
+- `NEXT_PUBLIC_PIAPI_KEY`
+- `NEXT_PUBLIC_FIREBASE_API_KEY`
+- `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
+- `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
+- `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
+- `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
+- `NEXT_PUBLIC_FIREBASE_APP_ID`
+
+### Manual Deployment
+
+If you prefer to deploy manually:
+
+1. Install the Vercel CLI:
+```bash
+npm install -g vercel
+```
+
+2. Login to Vercel:
+```bash
+vercel login
+```
+
+3. Deploy from your local directory:
+```bash
+vercel
+```
+
+4. For production deployment:
+```bash
+vercel --prod
+```
+
+## License
+
+This project is licensed under the MIT License.
 
 ## Tech Stack
 
