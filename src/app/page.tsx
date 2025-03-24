@@ -40,8 +40,8 @@ export default function Home() {
         sourceImage: sourceImage.name || "Uploaded image",
         // Store the target image URL 
         targetImage: targetImage,
-        // The result will be updated later
-        resultImage: "processing", 
+        // Use a placeholder image URL instead of "processing" text
+        resultImage: "/images/placeholder.png", 
         // Store the task ID for reference
         taskId: id,
         // Store the timestamp

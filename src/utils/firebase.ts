@@ -19,6 +19,9 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
 
+// Change the collection name from 'generations' to 'generate-image'
+const COLLECTION_NAME = 'generate-image';
+
 export const signInWithGoogle = async () => {
   try {
     const result = await signInWithPopup(auth, googleProvider);
@@ -81,8 +84,8 @@ export const saveGeneration = async (userId: string, data: {
       timestamp: new Date().toISOString(),
     };
     
-    // Add the document to the generations collection
-    const docRef = await addDoc(collection(db, "generations"), generationData);
+    // Add the document to the generate-image collection
+    const docRef = await addDoc(collection(db, COLLECTION_NAME), generationData);
     console.log("Generation saved successfully with ID:", docRef.id);
     
     // Keep only the 10 most recent generations for this user
@@ -100,7 +103,7 @@ const limitUserGenerations = async (userId: string, limit: number) => {
   try {
     // Get all generations for this user, ordered by timestamp
     const userGenerationsQuery = query(
-      collection(db, "generations"),
+      collection(db, COLLECTION_NAME),
       where("userId", "==", userId),
       orderBy("timestamp", "desc")
     );
@@ -139,7 +142,7 @@ export const getUserGenerations = async (userId: string) => {
     
     // Create the query to get the most recent generations
     const q = query(
-      collection(db, "generations"), 
+      collection(db, COLLECTION_NAME), 
       where("userId", "==", userId),
       orderBy("timestamp", "desc"),
       limit(10) // Only get the 10 most recent
@@ -240,7 +243,7 @@ export const updateGeneration = async (generationId: string, data: {
     }
     
     // Get a reference to the document
-    const generationRef = doc(db, "generations", generationId);
+    const generationRef = doc(db, COLLECTION_NAME, generationId);
     
     // Update only the specified fields
     await updateDoc(generationRef, {

@@ -71,12 +71,18 @@ const GenerationHistory: React.FC<GenerationHistoryProps> = ({ userId, onSelectG
             onClick={() => onSelectGeneration && onSelectGeneration(generation)}
           >
             <div className="relative h-40 w-full">
-              <Image
-                src={generation.resultImage}
-                alt="Face swap result"
-                fill
-                className="object-cover"
-              />
+              {generation.resultImage && (generation.resultImage !== "processing") && generation.resultImage.startsWith('http') ? (
+                <Image
+                  src={generation.resultImage}
+                  alt="Face swap result"
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full w-full bg-gray-100">
+                  <p className="text-gray-500 text-sm">Processing...</p>
+                </div>
+              )}
             </div>
             <div className="p-3">
               <p className="text-xs text-gray-500">
