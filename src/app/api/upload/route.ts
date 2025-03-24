@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
       try {
         const errorData = await response.json();
         errorMessage = errorData.message || errorMessage;
-      } catch (_) {
+      } catch (_error) {
         // If the response is not JSON, use the status text
         errorMessage = `${response.status}: ${response.statusText}`;
       }
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     let data;
     try {
       data = await response.json();
-    } catch (_) {
+    } catch (_error) {
       console.error('JSON parse error in upload API:');
       return NextResponse.json(
         {

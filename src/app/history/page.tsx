@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import Image from 'next/image';
 import Link from 'next/link';
-import { getUserGenerations, saveGeneration, testFirebaseConnection } from '@/utils/firebase';
+import { getUserGenerations } from '@/utils/firebase';
 import { Generation } from '@/types';
 import { toast } from 'react-toastify';
 

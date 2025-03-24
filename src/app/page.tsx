@@ -89,7 +89,7 @@ export default function Home() {
     setSourceImage(file);
   };
 
-  // This is used in the JSX below
+  // Used in a component that's not currently rendered
   const handleSelectGeneration = (generation: Generation) => {
     setResultUrl(generation.resultImage);
     setStatus('succeeded');
@@ -261,7 +261,7 @@ export default function Home() {
     try {
       localStorage.setItem('test', 'test');
       localStorage.removeItem('test');
-    } catch (_) {
+    } catch (_error) {
       console.warn("localStorage is not available. Generation history may not work correctly.");
       toast.warning("Your browser doesn't fully support all features. Generation history may not work correctly.");
     }

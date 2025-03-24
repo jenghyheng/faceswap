@@ -120,14 +120,4 @@ export async function POST(request: NextRequest) {
 }
 
 // Helper function to create error responses
-function createErrorResponse(message: string, status = 400) {
-  return new Response(JSON.stringify({ error: message }), {
-    status,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-}
-
-// If the function is not used at all, remove the entire function
-// Otherwise, use the function where appropriate or add a comment to disable the linter for this specific case 
+// Remove or use the createErrorResponse function. 
