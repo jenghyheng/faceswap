@@ -16,7 +16,7 @@ module.exports = {
         'shimmer': 'shimmer 1.5s infinite linear',
         'progress': 'progress 2.5s ease-in-out infinite',
       },
-      minHeight: {
+      height: {
         '11': '2.75rem',
       },
       minWidth: {
