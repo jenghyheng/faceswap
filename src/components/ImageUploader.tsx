@@ -21,6 +21,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<ProcessedImage | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewLoaded, setPreviewLoaded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { isMobile, isTouch } = useMobileDetect();
   
@@ -46,6 +47,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
       setPreviewUrl(null);
     }
     setUploadProgress(null);
+    setPreviewLoaded(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -57,6 +59,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
       clearImage();
       
       setIsProcessing(true);
+      setPreviewLoaded(false);
 
       // Create preview immediately for better UX
       const tempPreviewUrl = URL.createObjectURL(file);
@@ -133,93 +136,98 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
 
       {/* Mobile-friendly layout with preview */}
       {previewUrl ? (
-        <div className="relative">
-          <div className="relative aspect-square w-full overflow-hidden rounded-lg mb-4 border-2 border-blue-400">
+        <div className="w-full flex justify-center">
+          <div className="relative w-full max-w-[300px] max-h-[300px] aspect-square overflow-hidden rounded-lg mb-4 border-2 border-blue-400">
+            <div className={`absolute inset-0 bg-gray-200 animate-pulse ${previewLoaded ? 'hidden' : 'block'}`}></div>
             <Image 
               src={previewUrl} 
               alt="Preview" 
               fill 
-              className="object-contain" 
+              className={`object-contain ${previewLoaded ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200`}
               priority
               key={previewUrl} // Force re-render on new preview
+              sizes="(max-width: 640px) 300px, 300px"
+              onLoadingComplete={() => setPreviewLoaded(true)}
             />
+            
+            {!isProcessing && (
+              <button 
+                onClick={clearImage}
+                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 shadow-md"
+                aria-label="Remove image"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+            
+            {isProcessing && (
+              <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center rounded-lg">
+                <div className="text-white text-center p-4">
+                  <div className="mb-2">Processing...</div>
+                  <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
+                    <div className="h-full bg-blue-500 rounded-full animate-pulse"></div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-          
-          {!isProcessing && (
-            <button 
-              onClick={clearImage}
-              className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 shadow-md"
-              aria-label="Remove image"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          )}
-          
-          {isProcessing && (
-            <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center rounded-lg">
-              <div className="text-white text-center p-4">
-                <div className="mb-2">Processing...</div>
-                <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
+        </div>
+      ) : (
+        <div className="w-full flex justify-center">
+          <div 
+            {...getRootProps()} 
+            className={`p-6 border-2 border-dashed rounded-lg text-center transition-all w-full max-w-[300px] min-h-[200px] flex flex-col justify-center items-center ${
+              isDragActive 
+                ? 'border-blue-500 bg-blue-50' 
+                : 'border-gray-300 hover:border-gray-400'
+            } ${disabled || isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            onClick={handleMobileClick}
+          >
+            <input {...getInputProps()} />
+            {isProcessing ? (
+              <div className="space-y-2 w-full">
+                <p className="text-blue-500">Processing image...</p>
+                <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
                   <div className="h-full bg-blue-500 rounded-full animate-pulse"></div>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div 
-          {...getRootProps()} 
-          className={`p-6 border-2 border-dashed rounded-lg text-center transition-all ${
-            isDragActive 
-              ? 'border-blue-500 bg-blue-50' 
-              : 'border-gray-300 hover:border-gray-400'
-          } ${disabled || isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-          onClick={handleMobileClick}
-        >
-          <input {...getInputProps()} />
-          {isProcessing ? (
-            <div className="space-y-2">
-              <p className="text-blue-500">Processing image...</p>
-              <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-500 rounded-full animate-pulse"></div>
+            ) : isDragActive ? (
+              <p className="text-blue-500">Drop the image here...</p>
+            ) : (
+              <div>
+                <div className="flex flex-col items-center justify-center">
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    className="h-10 w-10 text-gray-400 mb-2" 
+                    fill="none" 
+                    viewBox="0 0 24 24" 
+                    stroke="currentColor"
+                  >
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={1.5} 
+                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" 
+                    />
+                  </svg>
+                  <p className="mb-1 font-medium">{label}</p>
+                  <p className="text-sm text-gray-500">
+                    {isMobile ? 'Tap to take a photo or select from gallery' : 'Drag & drop or click to select'}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Supports JPEG, PNG, WebP, HEIC • Max {formatFileSize(10 * 1024 * 1024)}
+                  </p>
+                </div>
               </div>
-            </div>
-          ) : isDragActive ? (
-            <p className="text-blue-500">Drop the image here...</p>
-          ) : (
-            <div>
-              <div className="flex flex-col items-center justify-center">
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  className="h-10 w-10 text-gray-400 mb-2" 
-                  fill="none" 
-                  viewBox="0 0 24 24" 
-                  stroke="currentColor"
-                >
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth={1.5} 
-                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" 
-                  />
-                </svg>
-                <p className="mb-1 font-medium">{label}</p>
-                <p className="text-sm text-gray-500">
-                  {isMobile ? 'Tap to take a photo or select from gallery' : 'Drag & drop or click to select'}
-                </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  Supports JPEG, PNG, WebP, HEIC • Max {formatFileSize(10 * 1024 * 1024)}
-                </p>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
     
       {uploadProgress && !isProcessing && (
-        <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
+        <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded mx-auto max-w-[300px]">
           <p className="font-medium mb-1">Image details:</p>
           <div className="grid grid-cols-2 gap-2">
             <div>

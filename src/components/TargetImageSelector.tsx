@@ -30,12 +30,14 @@ const TargetImageSelector: React.FC<TargetImageSelectorProps> = ({
   const [scrollable, setScrollable] = useState(false);
   const { isMobile } = useMobileDetect();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [previewLoaded, setPreviewLoaded] = useState(false);
 
   // Track the selected image's ID for visual feedback
   useEffect(() => {
     if (selectedImage) {
       const found = predefinedImages.find(img => img.url === selectedImage);
       setSelectedId(found?.id || null);
+      setPreviewLoaded(false); // Reset loading state when image changes
     } else {
       setSelectedId(null);
     }
@@ -84,18 +86,23 @@ const TargetImageSelector: React.FC<TargetImageSelectorProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Selected Image Preview */}
+      {/* Selected Image Preview Container */}
       {selectedImage && (
-        <div className="relative aspect-square max-h-48 overflow-hidden rounded-lg border-2 border-blue-500 mb-4">
-          <Image
-            src={selectedImage}
-            alt="Selected target image"
-            fill
-            className="object-cover"
-            priority
-          />
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2 text-white text-xs text-center">
-            Selected Template
+        <div className="w-full flex justify-center">
+          <div className="relative w-full max-w-[300px] max-h-[300px] aspect-square overflow-hidden rounded-lg border-2 border-blue-500 mb-4">
+            <div className={`absolute inset-0 bg-gray-200 animate-pulse ${previewLoaded ? 'hidden' : 'block'}`}></div>
+            <Image
+              src={selectedImage}
+              alt="Selected target image"
+              fill
+              className={`object-contain ${previewLoaded ? 'opacity-100' : 'opacity-0'}`}
+              priority
+              sizes="(max-width: 640px) 300px, 300px"
+              onLoadingComplete={() => setPreviewLoaded(true)}
+            />
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2 text-white text-xs text-center">
+              Selected Template
+            </div>
           </div>
         </div>
       )}
@@ -122,19 +129,20 @@ const TargetImageSelector: React.FC<TargetImageSelectorProps> = ({
               data-image-id={image.id}
               className={`
                 relative aspect-square overflow-hidden rounded-lg border-2 cursor-pointer flex-shrink-0
-                ${isMobile ? 'w-24 h-24 snap-center' : ''}
+                ${isMobile ? 'w-24 h-24 snap-center' : 'w-20 h-20 sm:w-24 sm:h-24'}
                 ${isSelected ? 'border-blue-500 ring-2 ring-blue-300' : 'border-gray-200 hover:border-gray-300'}
                 ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
                 transition-all duration-150 ${isSelected ? 'scale-100' : 'active:scale-95'}
               `}
               onClick={() => handleSelectImage(image.url, image.id)}
             >
+              <div className="absolute inset-0 bg-gray-100 animate-pulse"></div>
               <Image
                 src={image.url}
                 alt={`Target image ${image.id}`}
                 fill
                 className="object-cover"
-                sizes={isMobile ? '96px' : '(max-width: 640px) 33vw, (max-width: 768px) 25vw, 14vw'}
+                sizes={isMobile ? '96px' : '(max-width: 640px) 80px, (max-width: 768px) 96px, 96px'}
                 priority={parseInt(image.id) <= 3 || isSelected} // Load selected and first 3 images with priority
               />
               {isSelected && (
