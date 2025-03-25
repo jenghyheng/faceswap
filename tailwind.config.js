@@ -5,6 +5,7 @@ module.exports = {
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  darkMode: 'media',
   theme: {
     extend: {
       backgroundImage: {
@@ -22,6 +23,12 @@ module.exports = {
       minWidth: {
         '11': '2.75rem',
       },
+    },
+  },
+  variants: {
+    extend: {
+      opacity: ['disabled'],
+      cursor: ['disabled'],
     },
   },
   plugins: [],
