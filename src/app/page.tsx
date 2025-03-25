@@ -12,10 +12,12 @@ import { createFaceSwapTask, checkTaskStatus } from '@/utils/api';
 import { saveGeneration, updateGeneration } from '@/utils/firebase';
 import { SwapStatus, Generation } from '@/types';
 import Image from 'next/image';
+import useMobileDetect from '@/hooks/useMobileDetect';
 
 export default function Home() {
   const { currentUser } = useAuth();
-
+  const { isMobile } = useMobileDetect();
+  
   const [targetImage, setTargetImage] = useState<string | null>(null);
   const [sourceImage, setSourceImage] = useState<File | null>(null);
   const [status, setStatus] = useState<SwapStatus>('idle');
@@ -212,7 +214,7 @@ export default function Home() {
         setTimeout(poll, interval);
       } catch (err) {
         console.error('Error in polling:', err);
-        setStatus('failed');
+          setStatus('failed');
         setError(err instanceof Error ? err.message : 'An unknown error occurred');
         setIsPolling(false);
       }
@@ -282,128 +284,113 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-6">
       {currentUser ? (
         <div>
-          <div className="flex flex-col md:flex-row gap-8">
-            <div className="md:w-1/2">
-              <h2 className="text-2xl font-bold mb-4">Select Target Image</h2>
-              <TargetImageSelector 
-                onSelectImage={setTargetImage} 
-                selectedImage={targetImage}
-                disabled={status === 'loading'}
-              />
-            </div>
-            
-            <div className="md:w-1/2">
-              <h2 className="text-2xl font-bold mb-4">Upload Your Face</h2>
-              <ImageUploader 
-                onImageSelected={handleSourceImageSelected} 
-                label="Drop or select your face image"
-                disabled={status === 'loading'}
-              />
-            </div>
-          </div>
+          <h1 className="text-2xl font-bold mb-6 text-center">Face Swap App</h1>
           
-          {/* Preview Section */}
-          {(targetImage || sourceImage) && (
-            <div className="mt-8 p-6 bg-gray-50 rounded-lg">
-              <h2 className="text-xl font-bold mb-4">Preview</h2>
-              <div className="flex flex-col sm:flex-row gap-4 justify-around items-center">
-                {targetImage && (
-                  <div className="text-center">
-                    <h3 className="font-medium mb-2">Target Image</h3>
-                    <div className="relative w-52 h-52 rounded-lg overflow-hidden border-2 border-blue-500">
-                      <Image 
-                        src={targetImage} 
-                        alt="Target image" 
-                        fill 
-                        className="object-cover"
-                      />
+          {/* When result is ready, show just the result and history */}
+          {status === 'succeeded' && resultUrl ? (
+            <>
+              <div className="mt-4">
+                <ResultDisplay
+                  status={status}
+                  resultUrl={resultUrl}
+                  error={error}
+                  onTryAgain={handleReset}
+                  taskId={taskId}
+                />
+              </div>
+              
+              <div className="mt-8">
+                <h2 className="text-xl font-bold mb-4">Your History</h2>
+                <GenerationHistory
+                  userId={currentUser.uid}
+                  onSelectGeneration={handleSelectGeneration}
+                />
+              </div>
+            </>
+          ) : (
+            /* When no result or still processing, show the main interface */
+            <>
+              {/* Mobile-optimized layout */}
+              <div className="flex flex-col space-y-6">
+                {/* For mobile, we show source upload first, then target selection */}
+                <div className={isMobile ? "order-1" : ""}>
+                  <ImageUploader
+                    onImageSelected={handleSourceImageSelected} 
+                    label="Your Face Image"
+                    disabled={status === 'loading'}
+                  />
+                </div>
+                
+                <div className={isMobile ? "order-2" : ""}>
+                  <TargetImageSelector
+                    onSelectImage={setTargetImage} 
+                    selectedImage={targetImage}
+                    disabled={status === 'loading'}
+                  />
+                </div>
+                
+                {/* Submit button - shown if both images are selected */}
+                {(targetImage && sourceImage) && (
+                  <div className="order-3 mt-4">
+                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-100 text-center">
+                      <p className="text-sm text-blue-800 mb-3">
+                        Ready to create your face swap?
+                      </p>
+                      <button
+                        onClick={handleSubmit}
+                        disabled={status === 'loading'}
+                        className={`w-full py-3.5 px-6 rounded-lg font-medium flex items-center justify-center ${
+                          status === 'loading'
+                            ? 'bg-gray-400 cursor-not-allowed text-gray-200'
+                            : 'bg-blue-600 hover:bg-blue-700 text-white'
+                        }`}
+                      >
+                        {status === 'loading' ? (
+                          <>
+                            <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Create Face Swap
+                          </>
+                        )}
+                      </button>
                     </div>
-                    <p className="mt-2 text-sm text-gray-500">This is where your face will be placed</p>
                   </div>
                 )}
                 
-                {targetImage && sourceImage && (
-                  <div className="text-center py-10">
-                    <div className="flex items-center justify-center w-20 h-20 mx-auto rounded-full bg-blue-100">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                      </svg>
-                    </div>
-                  </div>
-                )}
-                
-                {sourceImage && (
-                  <div className="text-center">
-                    <h3 className="font-medium mb-2">Your Face</h3>
-                    <div className="relative w-52 h-52 rounded-lg overflow-hidden border-2 border-green-500">
-                      <Image 
-                        src={URL.createObjectURL(sourceImage)} 
-                        alt="Source image" 
-                        fill 
-                        className="object-cover"
-                      />
-                    </div>
-                    <p className="mt-2 text-sm text-gray-500">This face will be swapped onto the target</p>
+                {/* Status display (loading or error) */}
+                {(status === 'loading' || status === 'failed') && (
+                  <div className="order-4 mt-4">
+                    <ResultDisplay
+                      status={status}
+                      resultUrl={resultUrl}
+                      error={error}
+                      onTryAgain={handleReset}
+                      taskId={taskId}
+                    />
                   </div>
                 )}
               </div>
-              
-              {targetImage && sourceImage && (
-                <div className="mt-6 text-center">
-                  <p className="mb-4 text-sm text-gray-700">
-                    Your face from the source image will be swapped onto the target image. For best results, 
-                    ensure that your face is clearly visible in the source image.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-          
-          <div className="mt-6">
-            <button
-              onClick={handleSubmit}
-              disabled={!targetImage || !sourceImage || status === 'loading'}
-              className={`w-full mt-8 py-3 px-6 rounded-md text-white font-medium ${
-                !targetImage || !sourceImage || status === 'loading'
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700'
-              }`}
-            >
-              {status === 'loading' ? 'Processing...' : 'Create Face Swap'}
-            </button>
-          </div>
-          
-          <div className="mt-8">
-            <ResultDisplay
-              status={status}
-              resultUrl={resultUrl}
-              error={error}
-              onTryAgain={handleReset}
-              taskId={taskId}
-            />
-          </div>
-          
-          {currentUser && status !== 'loading' && (
-            <div className="mt-12">
-              <h2 className="text-2xl font-bold mb-4">Your History</h2>
-              <GenerationHistory
-                userId={currentUser.uid}
-                onSelectGeneration={(generation) => {
-                  setResultUrl(generation.resultImage);
-                  setStatus('succeeded');
-                }}
-              />
-            </div>
+            </>
           )}
         </div>
       ) : (
-        <div className="flex flex-col items-center py-12">
-          <h1 className="text-3xl font-bold mb-8">Face Swap App</h1>
-          <p className="text-xl mb-8 text-center max-w-2xl">
-            Sign in to start creating amazing face swaps with our AI-powered technology.
+        <div className="flex flex-col items-center py-10">
+          <h1 className="text-2xl font-bold mb-6">Face Swap App</h1>
+          <p className="text-lg mb-8 text-center max-w-md">
+            Sign in to start creating amazing face swaps with our AI technology.
           </p>
           <LoginButton />
         </div>
