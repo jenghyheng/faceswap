@@ -117,6 +117,17 @@ export default function Home() {
       );
 
       if (!taskResponse.success) {
+        // Check if this is an image size related error
+        if (taskResponse.error && typeof taskResponse.error === 'string') {
+          const errorLowerCase = taskResponse.error.toLowerCase();
+          if (errorLowerCase.includes('image size') || 
+              errorLowerCase.includes('too large') || 
+              errorLowerCase.includes('maximum is')) {
+            // Show a better error message for size issues
+            throw new Error('Image size is too large. Please use a smaller image or allow our automatic compression to work.');
+          }
+        }
+        
         throw new Error(taskResponse.error || 'Failed to create face swap task');
       }
 
@@ -131,6 +142,11 @@ export default function Home() {
       console.error('Error in createFaceSwap:', err);
       setStatus('failed');
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      
+      // Help the user understand what to do for size errors
+      if (err instanceof Error && err.message.toLowerCase().includes('image size')) {
+        toast.error('Please select a smaller image or try again with compression', { autoClose: 7000 });
+      }
     }
   };
 

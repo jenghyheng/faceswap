@@ -38,7 +38,13 @@ export const createFaceSwapTask = async (
         error: 'API key is not configured in environment variables',
       };
     }
-    
+
+    // Log some info about the images for debugging
+    console.log('Creating face swap task with images:', {
+      sourceImageSize: sourceImage.size,
+      sourceImageType: sourceImage.type
+    });
+
     // Prepare request data
     let targetImageData: string;
     let sourceImageData = '';
@@ -112,6 +118,18 @@ export const createFaceSwapTask = async (
       if (response.status >= 400) {
         const errorMessage = response.data.message || response.data.error || 'Error from PiAPI.ai';
         console.error('API error:', errorMessage);
+        
+        // Check if error is related to image size
+        if (errorMessage.toLowerCase().includes('image size') || 
+            errorMessage.toLowerCase().includes('too large') ||
+            errorMessage.toLowerCase().includes('maximum is')) {
+          return {
+            success: false,
+            taskId: '',
+            error: `Image size issue: ${errorMessage}. Please use a smaller image or try our auto-compression.`,
+          };
+        }
+        
         return {
           success: false,
           taskId: '',

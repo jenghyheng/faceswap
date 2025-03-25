@@ -233,6 +233,11 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
             <div>
               <p>Size: {formatFileSize(uploadProgress.size)}</p>
               <p>Dimensions: {uploadProgress.width} × {uploadProgress.height}px</p>
+              {uploadProgress.originalSize && uploadProgress.originalSize !== uploadProgress.size && (
+                <p className="text-green-600 mt-1">
+                  Compressed: {Math.round((1 - uploadProgress.size / uploadProgress.originalSize) * 100)}%
+                </p>
+              )}
             </div>
             <div className="text-right">
               <button 
@@ -242,6 +247,13 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
               >
                 Change
               </button>
+              {uploadProgress.originalWidth && uploadProgress.originalHeight && 
+               (uploadProgress.originalWidth !== uploadProgress.width || 
+                uploadProgress.originalHeight !== uploadProgress.height) && (
+                <p className="text-xs text-gray-400 mt-1">
+                  Original: {uploadProgress.originalWidth} × {uploadProgress.originalHeight}px
+                </p>
+              )}
             </div>
           </div>
         </div>
