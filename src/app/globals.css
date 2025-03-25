@@ -67,15 +67,6 @@ body {
   animation: progress 2.5s ease-in-out infinite;
 }
 
-/* Improve mobile touch targets */
-@media (max-width: 640px) {
-  button, 
-  a,
-  [role="button"] {
-    @apply min-h-11 min-w-11;
-  }
-}
-
 /* Fix for iOS Safari viewport height issues */
 @supports (-webkit-touch-callout: none) {
   .h-screen {
