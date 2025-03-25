@@ -4,25 +4,20 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'lh3.googleusercontent.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'img.theapi.app',
-      },
-      {
-        protocol: 'https',
-        hostname: 'piapi.io',
-      },
-      {
-        protocol: 'https',
-        hostname: 'picsum.photos',
-      },
-      {
-        protocol: 'https',
-        hostname: 'devimg.tinylittleme.com',
+        hostname: '**',
       },
     ],
+  },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '20mb',
+    },
+  },
+  api: {
+    bodyParser: {
+      sizeLimit: '20mb',
+    },
+    responseLimit: '20mb',
   },
   // Disable ESLint during build
   eslint: {

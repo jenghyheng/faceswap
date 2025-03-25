@@ -15,7 +15,7 @@ import Image from 'next/image';
 
 export default function Home() {
   const { currentUser } = useAuth();
-
+  
   const [targetImage, setTargetImage] = useState<string | null>(null);
   const [sourceImage, setSourceImage] = useState<File | null>(null);
   const [status, setStatus] = useState<SwapStatus>('idle');
@@ -212,7 +212,7 @@ export default function Home() {
         setTimeout(poll, interval);
       } catch (err) {
         console.error('Error in polling:', err);
-        setStatus('failed');
+          setStatus('failed');
         setError(err instanceof Error ? err.message : 'An unknown error occurred');
         setIsPolling(false);
       }
@@ -288,7 +288,7 @@ export default function Home() {
           <div className="flex flex-col md:flex-row gap-8">
             <div className="md:w-1/2">
               <h2 className="text-2xl font-bold mb-4">Select Target Image</h2>
-              <TargetImageSelector 
+            <TargetImageSelector
                 onSelectImage={setTargetImage} 
                 selectedImage={targetImage}
                 disabled={status === 'loading'}
@@ -297,14 +297,14 @@ export default function Home() {
             
             <div className="md:w-1/2">
               <h2 className="text-2xl font-bold mb-4">Upload Your Face</h2>
-              <ImageUploader 
+            <ImageUploader
                 onImageSelected={handleSourceImageSelected} 
                 label="Drop or select your face image"
                 disabled={status === 'loading'}
               />
             </div>
-          </div>
-          
+            </div>
+            
           {/* Preview Section */}
           {(targetImage || sourceImage) && (
             <div className="mt-8 p-6 bg-gray-50 rounded-lg">
@@ -322,9 +322,9 @@ export default function Home() {
                       />
                     </div>
                     <p className="mt-2 text-sm text-gray-500">This is where your face will be placed</p>
-                  </div>
-                )}
-                
+              </div>
+            )}
+            
                 {targetImage && sourceImage && (
                   <div className="text-center py-10">
                     <div className="flex items-center justify-center w-20 h-20 mx-auto rounded-full bg-blue-100">
@@ -332,9 +332,9 @@ export default function Home() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                       </svg>
                     </div>
-                  </div>
-                )}
-                
+              </div>
+            )}
+            
                 {sourceImage && (
                   <div className="text-center">
                     <h3 className="font-medium mb-2">Your Face</h3>
@@ -359,8 +359,8 @@ export default function Home() {
                   </p>
                 </div>
               )}
-            </div>
-          )}
+              </div>
+            )}
           
           <div className="mt-6">
             <button
@@ -408,6 +408,6 @@ export default function Home() {
           <LoginButton />
         </div>
       )}
-    </div>
+      </div>
   );
 }
