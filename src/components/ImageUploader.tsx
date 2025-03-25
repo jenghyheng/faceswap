@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useState, useRef } from 'react';
+import React, { useCallback, useState, useRef, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { processImage, validateImage, formatFileSize, ProcessedImage } from '@/utils/imageProcessing';
 import { toast } from 'react-toastify';
@@ -23,9 +23,39 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { isMobile, isTouch } = useMobileDetect();
+  
+  // Clean up object URLs when component unmounts or when previewUrl changes
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+  
+  // Reset the file input value to ensure we can select the same file again
+  useEffect(() => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, [isProcessing]);
+
+  const clearImage = useCallback(() => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+    setUploadProgress(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, [previewUrl]);
 
   const handleImageProcess = async (file: File) => {
     try {
+      // Clear any existing preview first
+      clearImage();
+      
       setIsProcessing(true);
 
       // Create preview immediately for better UX
@@ -42,7 +72,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
       const processedImage = await processImage(file);
       setUploadProgress(processedImage);
 
-      // If the image was compressed, show a message
+      // If the image was compressed, show a message and update preview
       if (processedImage.file !== file) {
         // Update the preview with processed image
         URL.revokeObjectURL(tempPreviewUrl);
@@ -55,10 +85,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
       onImageSelected(processedImage.file);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to process image');
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-        setPreviewUrl(null);
-      }
+      clearImage();
     } finally {
       setIsProcessing(false);
     }
@@ -78,7 +105,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   };
 
   const handleMobileClick = () => {
-    if (isTouch && fileInputRef.current) {
+    if (fileInputRef.current) {
       fileInputRef.current.click();
     }
   };
@@ -95,15 +122,14 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
 
   return (
     <div className="space-y-4">
-      {isTouch && (
-        <input 
-          type="file" 
-          ref={fileInputRef}
-          onChange={handleNativeInputChange}
-          accept=".jpeg,.jpg,.png,.webp,.heic,image/*"
-          className="hidden"
-        />
-      )}
+      <input 
+        type="file" 
+        ref={fileInputRef}
+        onChange={handleNativeInputChange}
+        accept=".jpeg,.jpg,.png,.webp,.heic,image/*"
+        className="hidden"
+        key={`file-input-${isProcessing ? 'processing' : 'ready'}`} // Force new instance on state change
+      />
 
       {/* Mobile-friendly layout with preview */}
       {previewUrl ? (
@@ -114,16 +140,14 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
               alt="Preview" 
               fill 
               className="object-contain" 
+              priority
+              key={previewUrl} // Force re-render on new preview
             />
           </div>
           
           {!isProcessing && (
             <button 
-              onClick={() => {
-                if (previewUrl) URL.revokeObjectURL(previewUrl);
-                setPreviewUrl(null);
-                setUploadProgress(null);
-              }}
+              onClick={clearImage}
               className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 shadow-md"
               aria-label="Remove image"
             >
@@ -152,7 +176,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
               ? 'border-blue-500 bg-blue-50' 
               : 'border-gray-300 hover:border-gray-400'
           } ${disabled || isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-          onClick={isTouch ? handleMobileClick : undefined}
+          onClick={handleMobileClick}
         >
           <input {...getInputProps()} />
           {isProcessing ? (
