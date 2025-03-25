@@ -3,16 +3,17 @@
 import React, { useRef, useState, useEffect } from 'react';
 import Image from 'next/image';
 import useMobileDetect from '@/hooks/useMobileDetect';
+import { toast } from 'react-toastify';
 
-// Predefined target images
+// Predefined target images with fallbacks
 const predefinedImages = [
-  { id: '1', url: 'https://devimg.tinylittleme.com/card/w_1_E8NeQY_ver_1.jpeg' },
-  { id: '2', url: 'https://devimg.tinylittleme.com/card/w_3_ZpEpWH_ver_1.jpeg' },
-  { id: '3', url: 'https://devimg.tinylittleme.com/card/human_warrior_3_GOvOKB_ver_1.jpeg' },
-  { id: '4', url: 'https://devimg.tinylittleme.com/card/human_warrior_4_Pw1Hxj_ver_1.jpeg' },
-  { id: '5', url: 'https://devimg.tinylittleme.com/card/human_warrior_5_302M6D_ver_1.jpeg' },
-  { id: '6', url: 'https://devimg.tinylittleme.com/card/human_warrior_6_0nRsJM_ver_1.jpeg' },
-  { id: '7', url: 'https://devimg.tinylittleme.com/card/human_warrior_7_duaKrW_ver_1.jpeg' },
+  { id: '1', url: 'https://devimg.tinylittleme.com/card/w_1_E8NeQY_ver_1.jpeg', fallback: '/templates/template1.jpg' },
+  { id: '2', url: 'https://devimg.tinylittleme.com/card/w_3_ZpEpWH_ver_1.jpeg', fallback: '/templates/template2.jpg' },
+  { id: '3', url: 'https://devimg.tinylittleme.com/card/human_warrior_3_GOvOKB_ver_1.jpeg', fallback: '/templates/template3.jpg' },
+  { id: '4', url: 'https://devimg.tinylittleme.com/card/human_warrior_4_Pw1Hxj_ver_1.jpeg', fallback: '/templates/template4.jpg' },
+  { id: '5', url: 'https://devimg.tinylittleme.com/card/human_warrior_5_302M6D_ver_1.jpeg', fallback: '/templates/template5.jpg' },
+  { id: '6', url: 'https://devimg.tinylittleme.com/card/human_warrior_6_0nRsJM_ver_1.jpeg', fallback: '/templates/template6.jpg' },
+  { id: '7', url: 'https://devimg.tinylittleme.com/card/human_warrior_7_duaKrW_ver_1.jpeg', fallback: '/templates/template7.jpg' },
 ];
 
 interface TargetImageSelectorProps {
@@ -31,11 +32,36 @@ const TargetImageSelector: React.FC<TargetImageSelectorProps> = ({
   const { isMobile } = useMobileDetect();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [previewLoaded, setPreviewLoaded] = useState(false);
+  const [useLocalImages, setUseLocalImages] = useState(false);
+
+  // Check if remote images are accessible
+  useEffect(() => {
+    const checkImageAccess = async () => {
+      try {
+        const response = await fetch(predefinedImages[0].url, { method: 'HEAD' });
+        if (!response.ok) {
+          console.warn('Remote images not accessible, using local fallbacks');
+          setUseLocalImages(true);
+          toast.info('Using local template images', { toastId: 'local-images' });
+        }
+      } catch (err) {
+        console.error('Error checking image access:', err);
+        setUseLocalImages(true);
+        toast.info('Using local template images', { toastId: 'local-images' });
+      }
+    };
+    
+    checkImageAccess();
+  }, []);
 
   // Track the selected image's ID for visual feedback
   useEffect(() => {
+    console.log('Selected image changed to:', selectedImage);
     if (selectedImage) {
-      const found = predefinedImages.find(img => img.url === selectedImage);
+      const found = predefinedImages.find(img => 
+        img.url === selectedImage || img.fallback === selectedImage
+      );
+      console.log('Found image with ID:', found?.id);
       setSelectedId(found?.id || null);
       setPreviewLoaded(false); // Reset loading state when image changes
     } else {
@@ -72,6 +98,9 @@ const TargetImageSelector: React.FC<TargetImageSelectorProps> = ({
   const handleSelectImage = (imageUrl: string, imageId: string) => {
     if (disabled) return;
     
+    console.log('Image selected:', imageUrl);
+    console.log('Image ID:', imageId);
+    
     setSelectedId(imageId);
     onSelectImage(imageUrl);
     
@@ -82,6 +111,25 @@ const TargetImageSelector: React.FC<TargetImageSelectorProps> = ({
         selectedElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
       }
     }
+  };
+
+  // Handle image loading error by using fallback URL
+  const handleImageError = (imageId: string) => {
+    const image = predefinedImages.find(img => img.id === imageId);
+    if (image && !useLocalImages) {
+      console.log(`Image ${imageId} failed to load, using fallback`);
+      setUseLocalImages(true);
+      
+      // If this was the selected image, update the selection with fallback
+      if (selectedId === imageId) {
+        onSelectImage(image.fallback);
+      }
+    }
+  };
+
+  // Get the appropriate URL based on remote/local setting
+  const getImageUrl = (image: typeof predefinedImages[0]) => {
+    return useLocalImages ? image.fallback : image.url;
   };
 
   return (
@@ -95,10 +143,14 @@ const TargetImageSelector: React.FC<TargetImageSelectorProps> = ({
               src={selectedImage}
               alt="Selected target image"
               fill
-              className={`object-contain ${previewLoaded ? 'opacity-100' : 'opacity-0'}`}
+              className={`object-contain ${previewLoaded ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200`}
               priority
               sizes="(max-width: 640px) 300px, 300px"
               onLoadingComplete={() => setPreviewLoaded(true)}
+              onError={() => {
+                console.error('Error loading selected image:', selectedImage);
+                setPreviewLoaded(true); // Show something rather than loading indefinitely
+              }}
             />
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2 text-white text-xs text-center">
               Selected Template
@@ -123,6 +175,8 @@ const TargetImageSelector: React.FC<TargetImageSelectorProps> = ({
       >
         {predefinedImages.map((image) => {
           const isSelected = selectedId === image.id;
+          const imageUrl = getImageUrl(image);
+          
           return (
             <div
               key={image.id}
@@ -134,16 +188,17 @@ const TargetImageSelector: React.FC<TargetImageSelectorProps> = ({
                 ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
                 transition-all duration-150 ${isSelected ? 'scale-100' : 'active:scale-95'}
               `}
-              onClick={() => handleSelectImage(image.url, image.id)}
+              onClick={() => handleSelectImage(imageUrl, image.id)}
             >
               <div className="absolute inset-0 bg-gray-100 animate-pulse"></div>
               <Image
-                src={image.url}
+                src={imageUrl}
                 alt={`Target image ${image.id}`}
                 fill
                 className="object-cover"
                 sizes={isMobile ? '96px' : '(max-width: 640px) 80px, (max-width: 768px) 96px, 96px'}
                 priority={parseInt(image.id) <= 3 || isSelected} // Load selected and first 3 images with priority
+                onError={() => handleImageError(image.id)}
               />
               {isSelected && (
                 <div className="absolute inset-0 bg-blue-500 bg-opacity-20 flex items-center justify-center">
