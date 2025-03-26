@@ -299,7 +299,7 @@ export default function Home() {
     <div className="container mx-auto px-4 py-6">
       {currentUser ? (
         <div>
-          <h1 className="text-2xl font-bold mb-6 text-center">Face Swap App</h1>
+          
           
           {/* When result is ready, show just the result and history */}
           {status === 'succeeded' && resultUrl ? (
@@ -334,102 +334,73 @@ export default function Home() {
               </div>
             </>
           ) : (
-            <div>
-              <h2 className="text-xl font-bold mb-4">Upload Source Image</h2>
-              <ImageUploader
-                onImageSelected={handleSourceImageSelected}
-                label="Upload Your Photo"
-                disabled={status === 'loading'}
-              />
+            <div className="max-w-4xl mx-auto px-4 py-8">
+             
               
-              {sourceImage && (
-                <div className="mt-8">
-                  <h2 className="text-xl font-bold mb-4">Select Target Image</h2>
-                  <TargetImageSelector 
-                    onSelectImage={setTargetImage} 
-                    selectedImage={targetImage}
-                    disabled={status === 'loading'} 
+              <div className="space-y-8">
+                <div>
+                  <h2 className="text-2xl font-semibold mb-4">Step 1: Upload your face Image</h2>
+                  <ImageUploader
+                    onImageSelected={handleSourceImageSelected}
+                    disabled={status === 'loading'}
+                    label="Upload Your Photo"
                   />
-                  
-                  <div className="flex flex-col items-center mt-6">
-                    {status === 'idle' && (
-                      <button
-                        onClick={handleSubmit}
-                        disabled={!sourceImage || !targetImage}
-                        className={`w-full max-w-[300px] py-3 px-6 rounded-lg font-medium transition-all ${
-                          sourceImage && targetImage
-                            ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                            : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                        }`}
-                      >
-                        Swap Face
-                      </button>
-                    )}
-                    
-                    {status === 'loading' && (
-                      <div className="w-full max-w-[300px] mt-4 text-center">
-                        <div className="animate-pulse bg-blue-100 rounded-lg p-4">
-                          <p className="text-blue-800 font-medium">Processing...</p>
-                          <div className="h-2 mt-2 bg-blue-200 rounded-full">
-                            <div className="h-full bg-blue-600 rounded-full animate-progress"></div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {status === 'succeeded' && resultUrl && (
-                      <div className="w-full max-w-lg mt-8 text-center">
-                        <h2 className="text-xl font-bold mb-4">Result</h2>
-                        <div className="relative w-full max-h-[500px] overflow-hidden rounded-lg border-2 border-green-400 mb-4">
-                          <div className="aspect-square relative">
-                            <Image
-                              src={resultUrl}
-                              alt="Swapped face result"
-                              fill
-                              className="object-contain"
-                              priority
-                            />
-                          </div>
-                        </div>
-                        
-                        <div className="flex flex-wrap justify-center gap-4 mt-6">
-                          <a
-                            href={resultUrl}
-                            download="faceswap-result.jpg"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="py-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                          >
-                            Download Result
-                          </a>
-                          
-                          <button
-                            onClick={handleReset}
-                            className="py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                          >
-                            New Swap
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {status === 'failed' && error && (
-                      <div className="w-full max-w-[300px] mt-4">
-                        <div className="bg-red-100 text-red-700 p-4 rounded-lg">
-                          <p className="font-medium">Error:</p>
-                          <p>{error}</p>
-                        </div>
-                        <button
-                          onClick={handleReset}
-                          className="mt-4 w-full py-2 px-4 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
-                        >
-                          Try Again
-                        </button>
-                      </div>
-                    )}
-                  </div>
                 </div>
-              )}
+
+                {sourceImage && (
+                  <div>
+                    <h2 className="text-2xl font-semibold mb-4">Step 2: Select your template image</h2>
+                    <TargetImageSelector
+                      onSelectImage={setTargetImage}
+                      selectedImage={targetImage}
+                      disabled={status === 'loading'}
+                    />
+                  </div>
+                )}
+
+                {sourceImage && targetImage && (
+                  <div className="flex justify-center">
+                    <button
+                      onClick={handleSubmit}
+                      disabled={status === 'loading' || !sourceImage || !targetImage}
+                      className={`
+                        px-6 py-3 rounded-lg font-semibold text-white
+                        ${status === 'loading' 
+                          ? 'bg-gray-400 cursor-not-allowed'
+                          : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800'}
+                        transition-colors duration-150
+                      `}
+                    >
+                      {status === 'loading' ? 'Processing...' : 'Create Face Swap'}
+                    </button>
+                  </div>
+                )}
+
+                {status === 'succeeded' && resultUrl && (
+                  <div>
+                    <ResultDisplay 
+                      resultUrl={resultUrl}
+                      status={status}
+                      error={error}
+                      taskId={taskId}
+                      onTryAgain={() => {
+                        setSourceImage(null);
+                        setTargetImage(null);
+                        setResultUrl(null);
+                        setStatus('idle');
+                        setError(null);
+                        setTaskId(null);
+                      }}
+                    />
+                  </div>
+                )}
+
+                {error && (
+                  <div className="text-red-500 text-center">
+                    {error}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

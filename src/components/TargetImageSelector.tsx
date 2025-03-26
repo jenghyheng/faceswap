@@ -7,13 +7,41 @@ import { toast } from 'react-toastify';
 
 // Predefined target images with fallbacks
 const predefinedImages = [
-  { id: '1', url: 'https://devimg.tinylittleme.com/card/w_1_E8NeQY_ver_1.jpeg', fallback: '/templates/template1.jpg' },
-  { id: '2', url: 'https://devimg.tinylittleme.com/card/w_3_ZpEpWH_ver_1.jpeg', fallback: '/templates/template2.jpg' },
-  { id: '3', url: 'https://devimg.tinylittleme.com/card/human_warrior_3_GOvOKB_ver_1.jpeg', fallback: '/templates/template3.jpg' },
-  { id: '4', url: 'https://devimg.tinylittleme.com/card/human_warrior_4_Pw1Hxj_ver_1.jpeg', fallback: '/templates/template4.jpg' },
-  { id: '5', url: 'https://devimg.tinylittleme.com/card/human_warrior_5_302M6D_ver_1.jpeg', fallback: '/templates/template5.jpg' },
-  { id: '6', url: 'https://devimg.tinylittleme.com/card/human_warrior_6_0nRsJM_ver_1.jpeg', fallback: '/templates/template6.jpg' },
-  { id: '7', url: 'https://devimg.tinylittleme.com/card/human_warrior_7_duaKrW_ver_1.jpeg', fallback: '/templates/template7.jpg' },
+  { 
+    id: '1', 
+    url: 'https://devimg.tinylittleme.com/card/w_1_E8NeQY_ver_1.jpeg',
+    fallback: '/templates/template1.jpg'
+  },
+  { 
+    id: '2', 
+    url: 'https://devimg.tinylittleme.com/card/w_3_ZpEpWH_ver_1.jpeg',
+    fallback: '/templates/template2.jpg'
+  },
+  { 
+    id: '3', 
+    url: 'https://devimg.tinylittleme.com/card/human_warrior_3_GOvOKB_ver_1.jpeg',
+    fallback: '/templates/template3.jpg'
+  },
+  { 
+    id: '4', 
+    url: 'https://devimg.tinylittleme.com/card/human_warrior_4_Pw1Hxj_ver_1.jpeg',
+    fallback: '/templates/template4.jpg'
+  },
+  { 
+    id: '5', 
+    url: 'https://devimg.tinylittleme.com/card/human_warrior_5_302M6D_ver_1.jpeg',
+    fallback: '/templates/template5.jpg'
+  },
+  { 
+    id: '6', 
+    url: 'https://devimg.tinylittleme.com/card/human_warrior_6_0nRsJM_ver_1.jpeg',
+    fallback: '/templates/template6.jpg'
+  },
+  { 
+    id: '7', 
+    url: 'https://devimg.tinylittleme.com/card/human_warrior_7_duaKrW_ver_1.jpeg',
+    fallback: '/templates/template7.jpg'
+  },
 ];
 
 interface TargetImageSelectorProps {
@@ -33,35 +61,14 @@ const TargetImageSelector: React.FC<TargetImageSelectorProps> = ({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [previewLoaded, setPreviewLoaded] = useState(false);
   const [useLocalImages, setUseLocalImages] = useState(false);
-
-  // Check if remote images are accessible
-  useEffect(() => {
-    const checkImageAccess = async () => {
-      try {
-        const response = await fetch(predefinedImages[0].url, { method: 'HEAD' });
-        if (!response.ok) {
-          console.warn('Remote images not accessible, using local fallbacks');
-          setUseLocalImages(true);
-          toast.info('Using local template images', { toastId: 'local-images' });
-        }
-      } catch (err) {
-        console.error('Error checking image access:', err);
-        setUseLocalImages(true);
-        toast.info('Using local template images', { toastId: 'local-images' });
-      }
-    };
-    
-    checkImageAccess();
-  }, []);
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
 
   // Track the selected image's ID for visual feedback
   useEffect(() => {
-    console.log('Selected image changed to:', selectedImage);
     if (selectedImage) {
       const found = predefinedImages.find(img => 
         img.url === selectedImage || img.fallback === selectedImage
       );
-      console.log('Found image with ID:', found?.id);
       setSelectedId(found?.id || null);
       setPreviewLoaded(false); // Reset loading state when image changes
     } else {
@@ -97,10 +104,6 @@ const TargetImageSelector: React.FC<TargetImageSelectorProps> = ({
   // Helper function to handle image selection
   const handleSelectImage = (imageUrl: string, imageId: string) => {
     if (disabled) return;
-    
-    console.log('Image selected:', imageUrl);
-    console.log('Image ID:', imageId);
-    
     setSelectedId(imageId);
     onSelectImage(imageUrl);
     
@@ -113,23 +116,23 @@ const TargetImageSelector: React.FC<TargetImageSelectorProps> = ({
     }
   };
 
-  // Handle image loading error by using fallback URL
+  // Handle image loading error
   const handleImageError = (imageId: string) => {
     const image = predefinedImages.find(img => img.id === imageId);
-    if (image && !useLocalImages) {
-      console.log(`Image ${imageId} failed to load, using fallback`);
-      setUseLocalImages(true);
-      
-      // If this was the selected image, update the selection with fallback
-      if (selectedId === imageId) {
-        onSelectImage(image.fallback);
-      }
+    if (!image) return;
+
+    // Add to failed images set
+    setFailedImages(prev => new Set([...prev, image.url]));
+    
+    // If this was the selected image, update with fallback
+    if (selectedId === imageId) {
+      onSelectImage(image.fallback);
     }
   };
 
-  // Get the appropriate URL based on remote/local setting
+  // Get the appropriate URL based on whether the image has failed
   const getImageUrl = (image: typeof predefinedImages[0]) => {
-    return useLocalImages ? image.fallback : image.url;
+    return failedImages.has(image.url) ? image.fallback : image.url;
   };
 
   return (
@@ -148,8 +151,12 @@ const TargetImageSelector: React.FC<TargetImageSelectorProps> = ({
               sizes="(max-width: 640px) 300px, 300px"
               onLoadingComplete={() => setPreviewLoaded(true)}
               onError={() => {
-                console.error('Error loading selected image:', selectedImage);
-                setPreviewLoaded(true); // Show something rather than loading indefinitely
+                const image = predefinedImages.find(img => img.url === selectedImage);
+                if (image && !failedImages.has(image.url)) {
+                  setFailedImages(prev => new Set([...prev, image.url]));
+                  onSelectImage(image.fallback);
+                }
+                setPreviewLoaded(true);
               }}
             />
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2 text-white text-xs text-center">
@@ -197,7 +204,7 @@ const TargetImageSelector: React.FC<TargetImageSelectorProps> = ({
                 fill
                 className="object-cover"
                 sizes={isMobile ? '96px' : '(max-width: 640px) 80px, (max-width: 768px) 96px, 96px'}
-                priority={parseInt(image.id) <= 3 || isSelected} // Load selected and first 3 images with priority
+                priority={parseInt(image.id) <= 3 || isSelected}
                 onError={() => handleImageError(image.id)}
               />
               {isSelected && (
