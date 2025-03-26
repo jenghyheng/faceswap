@@ -4,6 +4,7 @@ module.exports = {
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   darkMode: 'media',
   theme: {
@@ -29,7 +30,12 @@ module.exports = {
     extend: {
       opacity: ['disabled'],
       cursor: ['disabled'],
+      backgroundColor: ['active', 'hover'],
+      scale: ['active', 'hover'],
+      borderColor: ['hover', 'focus'],
     },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/forms'),
+  ],
 } 

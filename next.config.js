@@ -34,6 +34,16 @@ const nextConfig = {
     // Only run ESLint in development, ignore during production builds
     ignoreDuringBuilds: true,
   },
+  // Ensure CSS modules work correctly
+  webpack: (config) => {
+    config.module.rules.push({
+      test: /\.css$/,
+      use: ['style-loader', 'css-loader', 'postcss-loader'],
+    });
+    return config;
+  },
+  // Enable source maps in production for better debugging
+  productionBrowserSourceMaps: true,
 }
 
 module.exports = nextConfig 
