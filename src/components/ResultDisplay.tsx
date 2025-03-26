@@ -1,9 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { SwapStatus } from '@/types';
 import useMobileDetect from '@/hooks/useMobileDetect';
+import FrameSelector from './FrameSelector';
+import { combineImageWithFrame, dataUrlToFile } from '@/utils/imageProcessing';
+import { toast } from 'react-toastify';
 
 interface ResultDisplayProps {
   status: SwapStatus;
@@ -21,6 +24,39 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({
   taskId,
 }) => {
   const { isMobile } = useMobileDetect();
+  const [selectedFrame, setSelectedFrame] = useState<string | null>(null);
+  const [framedImageUrl, setFramedImageUrl] = useState<string | null>(null);
+  const [isApplyingFrame, setIsApplyingFrame] = useState(false);
+  const [showFrameSelector, setShowFrameSelector] = useState(false);
+
+  // Reset framed image when result changes
+  useEffect(() => {
+    setFramedImageUrl(null);
+    setSelectedFrame(null);
+    setShowFrameSelector(false);
+  }, [resultUrl]);
+
+  // Handle frame selection
+  const handleSelectFrame = async (frameUrl: string | null) => {
+    setSelectedFrame(frameUrl);
+    
+    if (!frameUrl || !resultUrl) {
+      setFramedImageUrl(null);
+      return;
+    }
+    
+    try {
+      setIsApplyingFrame(true);
+      // Combine the result image with the selected frame
+      const combinedImageUrl = await combineImageWithFrame(resultUrl, frameUrl);
+      setFramedImageUrl(combinedImageUrl);
+    } catch (error) {
+      console.error('Error applying frame:', error);
+      toast.error('Failed to apply frame. Please try again.');
+    } finally {
+      setIsApplyingFrame(false);
+    }
+  };
 
   if (status === 'idle') {
     return null;
@@ -126,6 +162,8 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({
   }
 
   if (status === 'succeeded' && resultUrl) {
+    const displayImageUrl = framedImageUrl || resultUrl;
+    
     return (
       <div className="p-6 bg-green-50 rounded-lg border border-green-100">
         <div className="flex items-center mb-4">
@@ -138,19 +176,64 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({
         </div>
         
         <div className="relative w-full aspect-square max-h-96 mb-6 overflow-hidden rounded-lg border border-green-200 bg-white shadow-sm">
+          {isApplyingFrame && (
+            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10">
+              <div className="text-white text-center">
+                <svg className="animate-spin h-8 w-8 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p>Applying frame...</p>
+              </div>
+            </div>
+          )}
           <Image
-            src={resultUrl}
+            src={displayImageUrl}
             alt="Face swap result"
             fill
             className="object-contain"
             priority
           />
         </div>
+
+        {/* Frame selection */}
+        {!showFrameSelector ? (
+          <div className="mb-6">
+            <button
+              onClick={() => setShowFrameSelector(true)}
+              className="w-full py-2.5 px-3 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors font-medium flex items-center justify-center"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm0 2h12v10H4V5zm3 2a1 1 0 011-1h6a1 1 0 110 2H8a1 1 0 01-1-1zm0 4a1 1 0 011-1h3a1 1 0 110 2H8a1 1 0 01-1-1z" clipRule="evenodd" />
+              </svg>
+              Add a Frame
+            </button>
+          </div>
+        ) : (
+          <div className="mb-6">
+            <button
+              onClick={() => setShowFrameSelector(false)}
+              className="mb-4 inline-flex items-center text-purple-600 hover:text-purple-800"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+              </svg>
+              Hide Frame Options
+            </button>
+            
+            <FrameSelector 
+              onSelectFrame={handleSelectFrame} 
+              selectedFrame={selectedFrame}
+              resultImage={resultUrl}
+              disabled={isApplyingFrame}
+            />
+          </div>
+        )}
         
         <div className="grid grid-cols-2 gap-3">
           <a
-            href={resultUrl}
-            download="face-swap-result.jpg"
+            href={displayImageUrl}
+            download={framedImageUrl ? "framed-swap-result.jpg" : "face-swap-result.jpg"}
             target="_blank"
             rel="noopener noreferrer"
             className="py-2.5 px-3 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors font-medium flex items-center justify-center"

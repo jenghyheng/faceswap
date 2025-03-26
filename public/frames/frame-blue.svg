@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="500" height="500" viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Outer border -->
+  <rect x="10" y="10" width="480" height="480" rx="20" stroke="url(#blueGradient)" stroke-width="20" fill="none"/>
+  
+  <!-- Inner border -->
+  <rect x="40" y="40" width="420" height="420" rx="10" stroke="url(#blueGradient2)" stroke-width="5" fill="none"/>
+  
+  <!-- Decorative corner flourishes -->
+  <path d="M10,100 C30,60 60,30 100,10" stroke="url(#blueGradient)" stroke-width="5" fill="none"/>
+  <path d="M490,100 C470,60 440,30 400,10" stroke="url(#blueGradient)" stroke-width="5" fill="none"/>
+  <path d="M10,400 C30,440 60,470 100,490" stroke="url(#blueGradient)" stroke-width="5" fill="none"/>
+  <path d="M490,400 C470,440 440,470 400,490" stroke="url(#blueGradient)" stroke-width="5" fill="none"/>
+  
+  <!-- Gradient definitions -->
+  <defs>
+    <linearGradient id="blueGradient" x1="0" y1="0" x2="500" y2="500" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1E90FF"/>
+      <stop offset="0.5" stop-color="#0000CD"/>
+      <stop offset="1" stop-color="#4169E1"/>
+    </linearGradient>
+    
+    <linearGradient id="blueGradient2" x1="0" y1="0" x2="500" y2="500" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4169E1"/>
+      <stop offset="0.5" stop-color="#1E90FF"/>
+      <stop offset="1" stop-color="#0000CD"/>
+    </linearGradient>
+  </defs>
+</svg> 

@@ -170,4 +170,80 @@ export function formatFileSize(bytes: number): string {
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-} 
+}
+
+/**
+ * Combine a result image with a frame overlay
+ * @param resultImageUrl The URL of the result image
+ * @param frameUrl The URL of the frame to overlay
+ * @returns A Promise that resolves to a URL of the combined image
+ */
+export const combineImageWithFrame = async (
+  resultImageUrl: string,
+  frameUrl: string
+): Promise<string> => {
+  try {
+    // Create a canvas element
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) {
+      throw new Error('Canvas 2D context not supported');
+    }
+    
+    // Load the result image
+    const resultImage = await loadImage(resultImageUrl);
+    
+    // Set canvas dimensions to match the image
+    canvas.width = resultImage.width;
+    canvas.height = resultImage.height;
+    
+    // Draw the base image
+    ctx.drawImage(resultImage, 0, 0, canvas.width, canvas.height);
+    
+    // Load and draw the frame on top
+    const frameImage = await loadImage(frameUrl);
+    ctx.drawImage(frameImage, 0, 0, canvas.width, canvas.height);
+    
+    // Convert canvas to data URL
+    const combinedImageUrl = canvas.toDataURL('image/jpeg', 0.95);
+    
+    return combinedImageUrl;
+  } catch (error) {
+    console.error('Error combining image with frame:', error);
+    throw error;
+  }
+};
+
+/**
+ * Helper function to load an image from URL
+ */
+const loadImage = (src: string): Promise<HTMLImageElement> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous'; // Handle CORS for external images
+    img.onload = () => resolve(img);
+    img.onerror = (e) => reject(new Error(`Failed to load image: ${src}`));
+    img.src = src;
+  });
+};
+
+/**
+ * Convert a data URL to a File object
+ */
+export const dataUrlToFile = (
+  dataUrl: string,
+  filename: string = 'framed-image.jpg'
+): File => {
+  const arr = dataUrl.split(',');
+  const mime = arr[0].match(/:(.*?);/)![1];
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  
+  return new File([u8arr], filename, { type: mime });
+}; 

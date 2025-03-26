@@ -24,7 +24,7 @@ export const extractBase64FromDataUrl = (dataUrl: string): string => {
  * Creates a face swap task with piapi.ai API
  */
 export const createFaceSwapTask = async (
-  targetImage: string | File,
+  targetImage: string | File, 
   sourceImage: File
 ): Promise<TaskCreateResponse> => {
   try {
@@ -78,10 +78,10 @@ export const createFaceSwapTask = async (
       console.log('Making API request to PiAPI.ai...');
       
       const response = await axios.post(API_ENDPOINTS.CREATE_TASK, requestBody, {
-        headers: {
+      headers: {
           'X-API-KEY': apiKey,
-          'Content-Type': 'application/json',
-        },
+        'Content-Type': 'application/json',
+      },
         validateStatus: () => true, // Accept any status code to handle it manually
       });
       
@@ -190,7 +190,7 @@ export const checkTaskStatus = async (taskId: string): Promise<TaskStatusRespons
     
     // Make API request to check task status
     const response = await axios.get(`${API_ENDPOINTS.GET_TASK}/${taskId}`, {
-      headers: {
+        headers: {
         'X-API-KEY': apiKey,
       },
       validateStatus: () => true, // Accept any status code to handle it manually
