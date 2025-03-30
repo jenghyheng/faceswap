@@ -1,26 +1,21 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: [
-      'devimg.tinylittleme.com',
-      'lh3.googleusercontent.com',
-      'img.theapi.app'  // Add the API's image domain
-    ],
     remotePatterns: [
       {
         protocol: 'https',
         hostname: 'devimg.tinylittleme.com',
-        pathname: '/card/**',
+        pathname: '/**',
       },
       {
         protocol: 'https',
         hostname: 'lh3.googleusercontent.com',
-        pathname: '/a/**',  // Pattern for Google profile images
+        pathname: '/**',  // Pattern for Google profile images
       },
       {
         protocol: 'https',
         hostname: 'img.theapi.app',
-        pathname: '/temp/**',  // Pattern for API result images
+        pathname: '/**',  // Pattern for API result images
       },
     ],
   },

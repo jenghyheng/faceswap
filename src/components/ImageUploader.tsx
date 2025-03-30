@@ -9,12 +9,14 @@ import Image from 'next/image';
 
 interface ImageUploaderProps {
   onImageSelected: (file: File) => void;
+  onGenerate?: () => void;
   label: string;
   disabled?: boolean;
 }
 
 const ImageUploader: React.FC<ImageUploaderProps> = ({ 
   onImageSelected, 
+  onGenerate,
   label, 
   disabled = false 
 }) => {
@@ -22,6 +24,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   const [uploadProgress, setUploadProgress] = useState<ProcessedImage | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewLoaded, setPreviewLoaded] = useState(false);
+  const [processedFile, setProcessedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { isMobile, isTouch } = useMobileDetect();
   
@@ -74,6 +77,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
       // Process the image (compress if needed)
       const processedImage = await processImage(file);
       setUploadProgress(processedImage);
+      setProcessedFile(processedImage.file);
 
       // If the image was compressed, show a message and update preview
       if (processedImage.file !== file) {
@@ -84,13 +88,20 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
         
         toast.success(`Image compressed from ${formatFileSize(file.size)} to ${formatFileSize(processedImage.size)}`);
       }
-
+      
+      // Immediately notify parent component about the processed image
       onImageSelected(processedImage.file);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to process image');
       clearImage();
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleGenerate = () => {
+    if (processedFile && onGenerate) {
+      onGenerate();
     }
   };
 
@@ -147,7 +158,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
               priority
               key={previewUrl} // Force re-render on new preview
               sizes="(max-width: 640px) 300px, 300px"
-              onLoadingComplete={() => setPreviewLoaded(true)}
+              onLoad={() => setPreviewLoaded(true)}
             />
             
             {!isProcessing && (
@@ -247,14 +258,29 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
               >
                 Change
               </button>
-              {uploadProgress.originalWidth && uploadProgress.originalHeight && 
-               (uploadProgress.originalWidth !== uploadProgress.width || 
-                uploadProgress.originalHeight !== uploadProgress.height) && (
-                <p className="text-xs text-gray-400 mt-1">
-                  Original: {uploadProgress.originalWidth} × {uploadProgress.originalHeight}px
-                </p>
-              )}
             </div>
+          </div>
+          <div className="mt-4 flex justify-center">
+            <button
+              onClick={handleGenerate}
+              disabled={disabled || isProcessing || !processedFile}
+              className={`
+                py-2 px-6 rounded-full font-medium transition-all duration-200
+                ${disabled || isProcessing || !processedFile
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                  : 'bg-blue-500 hover:bg-blue-600 text-white transform hover:scale-105 active:scale-95'}
+              `}
+            >
+              {disabled || isProcessing ? (
+                <span className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processing...
+                </span>
+              ) : 'Generate Face Swap'}
+            </button>
           </div>
         </div>
       )}

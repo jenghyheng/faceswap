@@ -31,6 +31,8 @@ export const createFaceSwapTask = async (
     // Get API key from environment variables
     const apiKey = process.env.NEXT_PUBLIC_PIAPI_KEY || '';
     
+    console.log('API Key available:', !!apiKey);
+    
     if (!apiKey) {
       return {
         success: false,
@@ -42,7 +44,8 @@ export const createFaceSwapTask = async (
     // Log some info about the images for debugging
     console.log('Creating face swap task with images:', {
       sourceImageSize: sourceImage.size,
-      sourceImageType: sourceImage.type
+      sourceImageType: sourceImage.type,
+      targetImageType: typeof targetImage === 'string' ? 'URL' : 'File'
     });
 
     // Prepare request data
@@ -75,7 +78,7 @@ export const createFaceSwapTask = async (
 
     // Make the API request to piapi.ai
     try {
-      console.log('Making API request to PiAPI.ai...');
+      console.log('Making API request to PiAPI.ai with endpoint:', API_ENDPOINTS.CREATE_TASK);
       
       const response = await axios.post(API_ENDPOINTS.CREATE_TASK, requestBody, {
         headers: {
@@ -96,7 +99,8 @@ export const createFaceSwapTask = async (
       }
 
       // Log the response for debugging
-      console.log('API response:', JSON.stringify(response.data, null, 2));
+      console.log('API response status:', response.status);
+      console.log('API response data:', JSON.stringify(response.data, null, 2));
       
       // Handle the API response format properly
       if (response.data.code === 200 && response.data.data) {
@@ -179,6 +183,8 @@ export const checkTaskStatus = async (taskId: string): Promise<TaskStatusRespons
     // Get API key from environment variables
     const apiKey = process.env.NEXT_PUBLIC_PIAPI_KEY || '';
     
+    console.log('Checking task status for ID:', taskId);
+    
     if (!apiKey) {
       return {
         success: false,
@@ -189,12 +195,16 @@ export const checkTaskStatus = async (taskId: string): Promise<TaskStatusRespons
     }
     
     // Make API request to check task status
+    console.log('Making status check request to:', `${API_ENDPOINTS.GET_TASK}/${taskId}`);
+    
     const response = await axios.get(`${API_ENDPOINTS.GET_TASK}/${taskId}`, {
       headers: {
         'X-API-KEY': apiKey,
       },
       validateStatus: () => true, // Accept any status code to handle it manually
     });
+    
+    console.log('Status check response status:', response.status);
 
     // Check if the response is valid
     if (!response.data) {
