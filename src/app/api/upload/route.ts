@@ -13,6 +13,15 @@ export async function OPTIONS() {
   return NextResponse.json({}, { headers: corsHeaders });
 }
 
+// Increase the body size limit for the API route
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '20mb',
+    },
+  },
+};
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -31,6 +40,26 @@ export async function POST(request: NextRequest) {
     if (!file) {
       return NextResponse.json(
         { success: false, error: 'File is required' },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid file type. Only images are allowed.' },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    // Validate file size (20MB limit)
+    const maxSize = 20 * 1024 * 1024; // 20MB in bytes
+    if (file.size > maxSize) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: `File size exceeds limit. Maximum size allowed is ${Math.floor(maxSize / (1024 * 1024))}MB.` 
+        },
         { status: 400, headers: corsHeaders }
       );
     }
@@ -60,7 +89,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Network error connecting to the API service',
+          error: 'Network error connecting to the API service. Please check your internet connection and try again.',
         },
         { status: 500, headers: corsHeaders }
       );
@@ -96,7 +125,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Invalid JSON response from API',
+          error: 'Invalid response format from the API service. Please try again later.',
           code: 500,
         },
         { status: 500, headers: corsHeaders }
@@ -112,6 +141,11 @@ export async function POST(request: NextRequest) {
         success: true,
         url: data.data.url,
         code: 200,
+        metadata: {
+          size: file.size,
+          type: file.type,
+          name: file.name
+        }
       }, { headers: corsHeaders });
     }
     
@@ -121,13 +155,18 @@ export async function POST(request: NextRequest) {
         success: true,
         url: data.url,
         code: 200,
+        metadata: {
+          size: file.size,
+          type: file.type,
+          name: file.name
+        }
       }, { headers: corsHeaders });
     }
     
     // If no valid response format is found
     return NextResponse.json({
       success: false,
-      error: 'Invalid response format from API',
+      error: 'Invalid response format from API service. Please try again later.',
       code: 500,
     }, { status: 500, headers: corsHeaders });
 
@@ -136,7 +175,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        error: error instanceof Error 
+          ? error.message 
+          : 'An unexpected error occurred while processing your request. Please try again.',
       },
       { status: 500, headers: corsHeaders }
     );
